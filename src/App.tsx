@@ -147,6 +147,7 @@ export default function App() {
               navigate({ name: 'students' });
             }}
             onViewOccurrence={occurrenceActions.onViewOccurrence}
+            onOpenStudent={(id) => navigate({ name: 'student', id })}
             onShowAllOccurrences={() => navigate({ name: 'occurrences' })}
             onNewStudent={() => setStudentForm({})}
           />

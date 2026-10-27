@@ -21,6 +21,7 @@ src/
   data/seed.ts             Dados fictícios carregados na primeira utilização
   logic/useCaderneta.ts    Operações sobre alunos e ocorrências, pesquisa e ordenação
   logic/validation.ts      Validação dos formulários (inclui nº de processo único)
+  logic/statistics.ts      Indicadores e estatísticas do painel, calculados a partir dos dados
   utils/format.ts          Datas, normalização de texto, identificadores
   components/              Componentes da interface
   App.tsx                  Navegação entre vistas, formulário de aluno e mensagens
