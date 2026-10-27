@@ -5,7 +5,7 @@ import { StudentDetail } from './components/StudentDetail';
 import { StudentForm } from './components/StudentForm';
 import { StudentList } from './components/StudentList';
 import { Toasts, type Toast, type ToastKind } from './components/Toasts';
-import { useCaderneta } from './logic/useCaderneta';
+import { EMPTY_FILTERS, useCaderneta, type StudentFilters } from './logic/useCaderneta';
 import type { Student, StudentInput } from './types';
 
 type View = { name: 'dashboard' } | { name: 'students' } | { name: 'student'; id: string };
@@ -16,7 +16,8 @@ type StudentFormState = { student?: Student } | null;
 export default function App() {
   const caderneta = useCaderneta();
   const [view, setView] = useState<View>({ name: 'dashboard' });
-  const [query, setQuery] = useState('');
+  const [filters, setFilters] = useState<StudentFilters>(EMPTY_FILTERS);
+  const [page, setPage] = useState(1);
   const [studentForm, setStudentForm] = useState<StudentFormState>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const nextToastId = useRef(1);
@@ -72,8 +73,9 @@ export default function App() {
         {view.name === 'dashboard' && (
           <Dashboard
             caderneta={caderneta}
-            onSearch={(q) => {
-              setQuery(q);
+            onSearch={(query) => {
+              setFilters({ ...EMPTY_FILTERS, query });
+              setPage(1);
               navigate({ name: 'students' });
             }}
             onSelectStudent={(id) => navigate({ name: 'student', id })}
@@ -85,8 +87,10 @@ export default function App() {
           <StudentList
             students={caderneta.students}
             occurrenceCount={caderneta.occurrenceCountByStudent}
-            query={query}
-            onQueryChange={setQuery}
+            filters={filters}
+            onFiltersChange={setFilters}
+            page={page}
+            onPageChange={setPage}
             onSelect={(id) => navigate({ name: 'student', id })}
             onNewStudent={() => setStudentForm({})}
           />
@@ -105,7 +109,10 @@ export default function App() {
       </main>
 
       <footer className="app-footer">
-        <div className="container">Caderneta Digital · Os dados são guardados apenas neste navegador.</div>
+        <div className="container">
+          <span>Caderneta Digital</span>
+          <span>Os dados ficam guardados apenas neste navegador.</span>
+        </div>
       </footer>
 
       {studentForm && (

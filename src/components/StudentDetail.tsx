@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { sortByMostRecent, type Caderneta } from '../logic/useCaderneta';
 import { OCCURRENCE_TYPES, type Occurrence, type OccurrenceInput, type Student } from '../types';
-import { ageFrom, formatDate, initials } from '../utils/format';
+import { ageFrom, formatDate } from '../utils/format';
 import { ConfirmDialog } from './ConfirmDialog';
 import { EmptyState } from './EmptyState';
-import { OccurrenceCard, TypeBadge } from './OccurrenceCard';
+import { OccurrenceCard, TypeTag } from './OccurrenceCard';
 import { OccurrenceForm } from './OccurrenceForm';
 import type { ToastKind } from './Toasts';
 
@@ -32,7 +32,7 @@ export function StudentDetail({ student, caderneta, notify, onBack, onEdit }: St
   const saveOccurrence = (input: OccurrenceInput, existing?: Occurrence) => {
     const result = existing ? caderneta.updateOccurrence(existing.id, input) : caderneta.addOccurrence(input);
     if (result.ok) {
-      notify('success', existing ? 'Ocorrência actualizada com sucesso.' : 'Ocorrência registada com sucesso.');
+      notify('success', existing ? 'Ocorrência actualizada.' : 'Ocorrência registada.');
       setOccurrenceModal(null);
     }
     return result;
@@ -48,7 +48,7 @@ export function StudentDetail({ student, caderneta, notify, onBack, onEdit }: St
     const result = caderneta.deleteStudent(student.id);
     setConfirmDeleteStudent(false);
     if (result.ok) {
-      notify('success', `O aluno ${student.fullName} foi eliminado.`);
+      notify('success', `${student.fullName} foi eliminado da caderneta.`);
       onBack();
     } else {
       notify('error', result.error);
@@ -58,42 +58,31 @@ export function StudentDetail({ student, caderneta, notify, onBack, onEdit }: St
   return (
     <section>
       <button type="button" className="back-link" onClick={onBack}>
-        ← Voltar à lista de alunos
+        ← Alunos
       </button>
 
-      <div className="card profile-card">
-        <div className="profile-head">
-          <span className="avatar avatar-lg" aria-hidden="true">
-            {initials(student.fullName)}
-          </span>
-          <div className="profile-title">
-            <h1>{student.fullName}</h1>
-            <p className="muted">Nº de processo {student.processNumber}</p>
-            <div className="chips">
-              <span className="chip">{student.grade}</span>
-              <span className="chip">Turma {student.className}</span>
-              <span className="chip">{student.schoolYear}</span>
-            </div>
-          </div>
-          <div className="profile-actions">
-            <button type="button" className="btn btn-secondary" onClick={onEdit}>
-              Editar
-            </button>
-            <button type="button" className="btn btn-danger-outline" onClick={() => setConfirmDeleteStudent(true)}>
-              Eliminar
-            </button>
-          </div>
-        </div>
+      <div className="profile-layout">
+        {/* Secção 1 — Informações do aluno */}
+        <aside className="profile-info" aria-labelledby="info-title">
+          <p className="eyebrow" id="info-title">
+            Informações do aluno
+          </p>
+          <h1 className="profile-name">{student.fullName}</h1>
+          <p className="profile-id">
+            <span className="mono">Nº {student.processNumber}</span>
+            <span className="profile-class">
+              {student.grade} · Turma {student.className}
+            </span>
+          </p>
 
-        <div className="info-grid">
-          <div className="info-group">
+          <div className="info-block">
             <h2>Dados pessoais</h2>
             <dl>
               <div>
                 <dt>Data de nascimento</dt>
                 <dd>
                   {formatDate(student.birthDate)}
-                  {age !== null && <span className="muted"> ({age} anos)</span>}
+                  {age !== null && <span className="dd-sub">{age} anos</span>}
                 </dd>
               </div>
               <div>
@@ -102,14 +91,17 @@ export function StudentDetail({ student, caderneta, notify, onBack, onEdit }: St
               </div>
             </dl>
           </div>
-          <div className="info-group">
+
+          <div className="info-block">
             <h2>Dados escolares</h2>
             <dl>
               <div>
-                <dt>Classe e turma</dt>
-                <dd>
-                  {student.grade} · Turma {student.className}
-                </dd>
+                <dt>Classe</dt>
+                <dd>{student.grade}</dd>
+              </div>
+              <div>
+                <dt>Turma</dt>
+                <dd>{student.className}</dd>
               </div>
               <div>
                 <dt>Ano lectivo</dt>
@@ -117,7 +109,8 @@ export function StudentDetail({ student, caderneta, notify, onBack, onEdit }: St
               </div>
             </dl>
           </div>
-          <div className="info-group">
+
+          <div className="info-block">
             <h2>Encarregado de educação</h2>
             <dl>
               <div>
@@ -132,50 +125,64 @@ export function StudentDetail({ student, caderneta, notify, onBack, onEdit }: St
               </div>
             </dl>
           </div>
-        </div>
-      </div>
 
-      <div className="section-header">
-        <div>
-          <h2>Histórico disciplinar</h2>
-          <p className="muted">
-            {history.length === 0
-              ? 'Sem ocorrências registadas'
-              : `${history.length} ${history.length === 1 ? 'ocorrência registada' : 'ocorrências registadas'} · mais recentes primeiro`}
-          </p>
-        </div>
-        <button type="button" className="btn btn-primary" onClick={() => setOccurrenceModal({ mode: 'form' })}>
-          + Registar ocorrência
-        </button>
-      </div>
+          <div className="profile-actions">
+            <button type="button" className="btn btn-secondary" onClick={onEdit}>
+              Editar dados
+            </button>
+            <button type="button" className="text-btn danger" onClick={() => setConfirmDeleteStudent(true)}>
+              Eliminar aluno
+            </button>
+          </div>
+        </aside>
 
-      {typeCounts.length > 0 && (
-        <div className="type-summary" aria-label="Ocorrências por tipo">
-          {typeCounts.map((t) => (
-            <span key={t.value} className="type-summary-item">
-              <TypeBadge type={t.value} /> <strong>{t.count}</strong>
-            </span>
-          ))}
-        </div>
-      )}
+        {/* Secção 2 — Histórico disciplinar */}
+        <div className="profile-history" aria-labelledby="history-title">
+          <div className="history-head">
+            <div>
+              <p className="eyebrow" id="history-title">
+                Histórico disciplinar
+              </p>
+              <p className="history-total">
+                <span className="history-total-num">{history.length}</span>
+                {history.length === 1 ? 'ocorrência' : 'ocorrências'}
+              </p>
+            </div>
+            <button type="button" className="btn btn-primary" onClick={() => setOccurrenceModal({ mode: 'form' })}>
+              Registar ocorrência
+            </button>
+          </div>
 
-      {history.length === 0 ? (
-        <EmptyState
-          title="Nenhuma ocorrência registada"
-          description="Este aluno não tem ocorrências disciplinares. Quando registar uma, ela aparecerá aqui."
-        />
-      ) : (
-        <div className="occurrence-list">
-          {history.map((o) => (
-            <OccurrenceCard
-              key={o.id}
-              occurrence={o}
-              onEdit={() => setOccurrenceModal({ mode: 'form', occurrence: o })}
-              onDelete={() => setOccurrenceModal({ mode: 'delete', occurrence: o })}
+          {typeCounts.length > 0 && (
+            <ul className="type-counts" aria-label="Ocorrências por tipo">
+              {typeCounts.map((t) => (
+                <li key={t.value}>
+                  <TypeTag type={t.value} />
+                  <strong>{t.count}</strong>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {history.length === 0 ? (
+            <EmptyState
+              title="Sem ocorrências"
+              description="Este aluno não tem ocorrências disciplinares registadas."
             />
-          ))}
+          ) : (
+            <ol className="timeline" aria-label="Ocorrências, da mais recente para a mais antiga">
+              {history.map((o) => (
+                <OccurrenceCard
+                  key={o.id}
+                  occurrence={o}
+                  onEdit={() => setOccurrenceModal({ mode: 'form', occurrence: o })}
+                  onDelete={() => setOccurrenceModal({ mode: 'delete', occurrence: o })}
+                />
+              ))}
+            </ol>
+          )}
         </div>
-      )}
+      </div>
 
       {occurrenceModal?.mode === 'form' && (
         <OccurrenceForm
@@ -191,11 +198,11 @@ export function StudentDetail({ student, caderneta, notify, onBack, onEdit }: St
           title="Eliminar ocorrência"
           message={
             <p>
-              Tem a certeza de que pretende eliminar a ocorrência de{' '}
-              <strong>{formatDate(occurrenceModal.occurrence.date)}</strong>? Esta acção não pode ser desfeita.
+              Eliminar a ocorrência de <strong>{formatDate(occurrenceModal.occurrence.date)}</strong>? Esta acção não pode
+              ser desfeita.
             </p>
           }
-          confirmLabel="Eliminar ocorrência"
+          confirmLabel="Eliminar"
           onConfirm={() => deleteOccurrence(occurrenceModal.occurrence)}
           onCancel={() => setOccurrenceModal(null)}
         />
@@ -207,7 +214,7 @@ export function StudentDetail({ student, caderneta, notify, onBack, onEdit }: St
           message={
             <>
               <p>
-                Tem a certeza de que pretende eliminar <strong>{student.fullName}</strong>?
+                Eliminar <strong>{student.fullName}</strong> da caderneta?
               </p>
               {history.length > 0 && (
                 <p>

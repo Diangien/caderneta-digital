@@ -26,6 +26,9 @@ src/
   App.tsx                  Navegação entre vistas, formulário de aluno e mensagens
 ```
 
+As fontes (Fraunces e Figtree) são instaladas via `@fontsource-variable` e servidas localmente,
+pelo que a aplicação não depende de serviços externos.
+
 Os dados ficam numa única chave (`caderneta-digital:dados`) com a forma
 `{ version, students, occurrences }`. Cada ocorrência refere o aluno pelo `studentId`.
 Para repor os dados de demonstração, apague essa chave nas ferramentas de programador do navegador.

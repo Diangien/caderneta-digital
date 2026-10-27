@@ -30,9 +30,27 @@ export function currentSchoolYear(): string {
   return `${start}/${start + 1}`;
 }
 
-/** Normaliza texto para pesquisa: minúsculas e sem acentos. */
+/** Normaliza texto para pesquisa: minúsculas, sem acentos e com "ª" convertido em "a". */
 export function normalize(text: string): string {
-  return text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  return text.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+}
+
+const MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+/** Divide AAAA-MM-DD em dia, mês abreviado e ano, para apresentação em cronologia. */
+export function dateParts(iso: string): { day: string; month: string; year: string } {
+  const [y, m, d] = iso.split('-');
+  return { day: d ?? '', month: MONTHS[Number(m) - 1] ?? '', year: y ?? '' };
+}
+
+/** Data longa, ex.: "terça-feira, 27 de outubro de 2026". */
+export function longToday(): string {
+  return new Date().toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+/** Ordena classes pelo número ("2ª Classe" antes de "10ª Classe"). */
+export function compareGrades(a: string, b: string): number {
+  return parseInt(a, 10) - parseInt(b, 10) || a.localeCompare(b, 'pt');
 }
 
 export function initials(name: string): string {

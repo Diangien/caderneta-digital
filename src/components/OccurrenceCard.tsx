@@ -1,8 +1,14 @@
 import { occurrenceTypeLabel, type Occurrence, type OccurrenceType } from '../types';
-import { formatDate } from '../utils/format';
+import { dateParts } from '../utils/format';
 
-export function TypeBadge({ type }: { type: OccurrenceType }) {
-  return <span className={`type-badge type-${type}`}>{occurrenceTypeLabel(type)}</span>;
+/** Etiqueta do tipo de ocorrência: marca de cor + nome. */
+export function TypeTag({ type }: { type: OccurrenceType }) {
+  return (
+    <span className={`type-tag t-${type}`}>
+      <span className="type-swatch" aria-hidden="true" />
+      {occurrenceTypeLabel(type)}
+    </span>
+  );
 }
 
 interface OccurrenceCardProps {
@@ -11,34 +17,39 @@ interface OccurrenceCardProps {
   onDelete: () => void;
 }
 
+/** Entrada da cronologia disciplinar: data à esquerda, conteúdo à direita. */
 export function OccurrenceCard({ occurrence, onEdit, onDelete }: OccurrenceCardProps) {
+  const { day, month, year } = dateParts(occurrence.date);
   return (
-    <article className={`occurrence-card type-border-${occurrence.type}`}>
-      <header className="occurrence-header">
-        <div className="occurrence-meta">
-          <TypeBadge type={occurrence.type} />
-          <time dateTime={occurrence.date}>{formatDate(occurrence.date)}</time>
-        </div>
-        <div className="occurrence-actions">
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onEdit}>
-            Editar
-          </button>
-          <button type="button" className="btn btn-ghost btn-sm text-danger" onClick={onDelete}>
-            Eliminar
-          </button>
-        </div>
-      </header>
-      <p className="occurrence-description">{occurrence.description}</p>
-      <dl className="occurrence-details">
-        <div>
-          <dt>Medida / providência</dt>
-          <dd>{occurrence.measure || <span className="muted">Nenhuma medida registada</span>}</dd>
-        </div>
-        <div>
-          <dt>Registado por</dt>
-          <dd>{occurrence.recordedBy}</dd>
-        </div>
-      </dl>
-    </article>
+    <li className={`entry t-${occurrence.type}`}>
+      <time className="entry-date" dateTime={occurrence.date}>
+        <span className="entry-day">{day}</span>
+        <span className="entry-month">
+          {month} {year}
+        </span>
+      </time>
+      <span className="entry-dot" aria-hidden="true" />
+      <article className="entry-body">
+        <TypeTag type={occurrence.type} />
+        <p className="entry-description">{occurrence.description}</p>
+        {occurrence.measure && (
+          <p className="entry-measure">
+            <span className="entry-label">Medida aplicada</span>
+            {occurrence.measure}
+          </p>
+        )}
+        <footer className="entry-footer">
+          <span>Registado por {occurrence.recordedBy}</span>
+          <span className="entry-actions">
+            <button type="button" className="text-btn" onClick={onEdit}>
+              Editar
+            </button>
+            <button type="button" className="text-btn danger" onClick={onDelete}>
+              Eliminar
+            </button>
+          </span>
+        </footer>
+      </article>
+    </li>
   );
 }

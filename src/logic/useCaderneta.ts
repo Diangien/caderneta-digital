@@ -37,12 +37,38 @@ export function sortByMostRecent(list: Occurrence[]): Occurrence[] {
   return [...list].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
 }
 
-/** Filtra alunos pelo nome ou pelo número de processo. */
-export function searchStudents(students: Student[], query: string): Student[] {
-  const q = normalize(query);
-  const sorted = [...students].sort((a, b) => a.fullName.localeCompare(b.fullName, 'pt'));
-  if (!q) return sorted;
-  return sorted.filter((s) => normalize(s.fullName).includes(q) || normalize(s.processNumber).includes(q));
+export interface StudentFilters {
+  /** Texto livre: nome, nº de processo, classe ou turma. */
+  query: string;
+  /** Classe exacta ou "" para todas. */
+  grade: string;
+  /** Turma exacta ou "" para todas. */
+  className: string;
+}
+
+export const EMPTY_FILTERS: StudentFilters = { query: '', grade: '', className: '' };
+
+/**
+ * Cada palavra da pesquisa tem de corresponder ao aluno: contida no nº de processo,
+ * ou no início de uma palavra do nome, da classe ou da turma (ex.: "7ª", "turma b", "kiala 0002").
+ */
+function matchesQuery(student: Student, tokens: string[]): boolean {
+  const process = normalize(student.processNumber);
+  const words = normalize(`${student.fullName} ${student.grade} turma ${student.className}`).split(/[^a-z0-9]+/);
+  return tokens.every((t) => process.includes(t) || words.some((w) => w.startsWith(t)));
+}
+
+/** Aplica a pesquisa textual e os filtros de classe e turma; devolve os alunos por ordem alfabética. */
+export function filterStudents(students: Student[], filters: StudentFilters): Student[] {
+  const tokens = normalize(filters.query).split(/\s+/).filter(Boolean);
+  return students
+    .filter(
+      (s) =>
+        (!filters.grade || s.grade === filters.grade) &&
+        (!filters.className || s.className === filters.className) &&
+        matchesQuery(s, tokens),
+    )
+    .sort((a, b) => a.fullName.localeCompare(b.fullName, 'pt'));
 }
 
 export function useCaderneta() {
