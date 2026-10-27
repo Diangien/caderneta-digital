@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { sortByMostRecent, type Caderneta } from '../logic/useCaderneta';
-import { OCCURRENCE_TYPES, type Occurrence, type OccurrenceInput, type Student } from '../types';
+import { OCCURRENCE_TYPES, type Student } from '../types';
 import { ageFrom, formatDate } from '../utils/format';
 import { ConfirmDialog } from './ConfirmDialog';
 import { EmptyState } from './EmptyState';
 import { OccurrenceCard, TypeTag } from './OccurrenceCard';
-import { OccurrenceForm } from './OccurrenceForm';
 import type { ToastKind } from './Toasts';
 
 interface StudentDetailProps {
@@ -14,12 +13,21 @@ interface StudentDetailProps {
   notify: (kind: ToastKind, message: string) => void;
   onBack: () => void;
   onEdit: () => void;
+  onRegisterOccurrence: () => void;
+  onEditOccurrence: (occurrenceId: string) => void;
+  onDeleteOccurrence: (occurrenceId: string) => void;
 }
 
-type OccurrenceModal = { mode: 'form'; occurrence?: Occurrence } | { mode: 'delete'; occurrence: Occurrence };
-
-export function StudentDetail({ student, caderneta, notify, onBack, onEdit }: StudentDetailProps) {
-  const [occurrenceModal, setOccurrenceModal] = useState<OccurrenceModal | null>(null);
+export function StudentDetail({
+  student,
+  caderneta,
+  notify,
+  onBack,
+  onEdit,
+  onRegisterOccurrence,
+  onEditOccurrence,
+  onDeleteOccurrence,
+}: StudentDetailProps) {
   const [confirmDeleteStudent, setConfirmDeleteStudent] = useState(false);
 
   const history = sortByMostRecent(caderneta.occurrences.filter((o) => o.studentId === student.id));
@@ -28,21 +36,6 @@ export function StudentDetail({ student, caderneta, notify, onBack, onEdit }: St
     count: history.filter((o) => o.type === t.value).length,
   })).filter((t) => t.count > 0);
   const age = ageFrom(student.birthDate);
-
-  const saveOccurrence = (input: OccurrenceInput, existing?: Occurrence) => {
-    const result = existing ? caderneta.updateOccurrence(existing.id, input) : caderneta.addOccurrence(input);
-    if (result.ok) {
-      notify('success', existing ? 'Ocorrência actualizada.' : 'Ocorrência registada.');
-      setOccurrenceModal(null);
-    }
-    return result;
-  };
-
-  const deleteOccurrence = (occurrence: Occurrence) => {
-    const result = caderneta.deleteOccurrence(occurrence.id);
-    notify(result.ok ? 'success' : 'error', result.ok ? 'Ocorrência eliminada.' : result.error);
-    setOccurrenceModal(null);
-  };
 
   const deleteStudent = () => {
     const result = caderneta.deleteStudent(student.id);
@@ -148,7 +141,7 @@ export function StudentDetail({ student, caderneta, notify, onBack, onEdit }: St
                 {history.length === 1 ? 'ocorrência' : 'ocorrências'}
               </p>
             </div>
-            <button type="button" className="btn btn-primary" onClick={() => setOccurrenceModal({ mode: 'form' })}>
+            <button type="button" className="btn btn-primary" onClick={onRegisterOccurrence}>
               Registar ocorrência
             </button>
           </div>
@@ -175,38 +168,14 @@ export function StudentDetail({ student, caderneta, notify, onBack, onEdit }: St
                 <OccurrenceCard
                   key={o.id}
                   occurrence={o}
-                  onEdit={() => setOccurrenceModal({ mode: 'form', occurrence: o })}
-                  onDelete={() => setOccurrenceModal({ mode: 'delete', occurrence: o })}
+                  onEdit={() => onEditOccurrence(o.id)}
+                  onDelete={() => onDeleteOccurrence(o.id)}
                 />
               ))}
             </ol>
           )}
         </div>
       </div>
-
-      {occurrenceModal?.mode === 'form' && (
-        <OccurrenceForm
-          student={student}
-          occurrence={occurrenceModal.occurrence}
-          onSubmit={(input) => saveOccurrence(input, occurrenceModal.occurrence)}
-          onClose={() => setOccurrenceModal(null)}
-        />
-      )}
-
-      {occurrenceModal?.mode === 'delete' && (
-        <ConfirmDialog
-          title="Eliminar ocorrência"
-          message={
-            <p>
-              Eliminar a ocorrência de <strong>{formatDate(occurrenceModal.occurrence.date)}</strong>? Esta acção não pode
-              ser desfeita.
-            </p>
-          }
-          confirmLabel="Eliminar"
-          onConfirm={() => deleteOccurrence(occurrenceModal.occurrence)}
-          onCancel={() => setOccurrenceModal(null)}
-        />
-      )}
 
       {confirmDeleteStudent && (
         <ConfirmDialog

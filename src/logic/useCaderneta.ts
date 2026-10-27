@@ -117,16 +117,19 @@ export function useCaderneta() {
     }
     const now = new Date().toISOString();
     const occurrence: Occurrence = { ...cleanOccurrence(input), id: generateId(), createdAt: now, updatedAt: now };
-    return commit({ ...data, occurrences: [...data.occurrences, occurrence] });
+    const result = commit({ ...data, occurrences: [...data.occurrences, occurrence] });
+    return result.ok ? { ok: true, id: occurrence.id } : result;
   };
 
+  /** Actualiza a ocorrência; permite corrigir o aluno associado, desde que exista. */
   const updateOccurrence = (id: string, input: OccurrenceInput): Result => {
+    if (!data.students.some((s) => s.id === input.studentId)) {
+      return { ok: false, error: 'O aluno associado não existe.' };
+    }
     const now = new Date().toISOString();
     return commit({
       ...data,
-      occurrences: data.occurrences.map((o) =>
-        o.id === id ? { ...o, ...cleanOccurrence(input), studentId: o.studentId, updatedAt: now } : o,
-      ),
+      occurrences: data.occurrences.map((o) => (o.id === id ? { ...o, ...cleanOccurrence(input), updatedAt: now } : o)),
     });
   };
 

@@ -1,4 +1,4 @@
-export type Section = 'dashboard' | 'students';
+export type Section = 'dashboard' | 'students' | 'occurrences';
 
 interface HeaderProps {
   active: Section;
@@ -9,6 +9,7 @@ interface HeaderProps {
 const LINKS: { id: Section; label: string }[] = [
   { id: 'dashboard', label: 'Painel' },
   { id: 'students', label: 'Alunos' },
+  { id: 'occurrences', label: 'Ocorrências' },
 ];
 
 export function Header({ active, onNavigate, onNewStudent }: HeaderProps) {

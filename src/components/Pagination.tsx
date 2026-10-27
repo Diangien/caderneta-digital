@@ -3,16 +3,17 @@ interface PaginationProps {
   pageSize: number;
   total: number;
   onPageChange: (page: number) => void;
+  label?: string;
 }
 
-export function Pagination({ page, pageSize, total, onPageChange }: PaginationProps) {
+export function Pagination({ page, pageSize, total, onPageChange, label = 'Paginação' }: PaginationProps) {
   const pageCount = Math.ceil(total / pageSize);
   if (pageCount <= 1) return null;
   const first = (page - 1) * pageSize + 1;
   const last = Math.min(page * pageSize, total);
 
   return (
-    <nav className="pagination" aria-label="Paginação da lista de alunos">
+    <nav className="pagination" aria-label={label}>
       <span className="pagination-info">
         {first}–{last} de {total}
       </span>

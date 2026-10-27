@@ -9,7 +9,8 @@ import { SearchBox } from './SearchBox';
 interface DashboardProps {
   caderneta: Caderneta;
   onSearch: (query: string) => void;
-  onSelectStudent: (id: string) => void;
+  onViewOccurrence: (occurrenceId: string) => void;
+  onShowAllOccurrences: () => void;
   onNewStudent: () => void;
 }
 
@@ -19,7 +20,7 @@ function daysAgoISO(days: number): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
-export function Dashboard({ caderneta, onSearch, onSelectStudent, onNewStudent }: DashboardProps) {
+export function Dashboard({ caderneta, onSearch, onViewOccurrence, onShowAllOccurrences, onNewStudent }: DashboardProps) {
   const [query, setQuery] = useState('');
   const { students, occurrences, occurrenceCountByStudent } = caderneta;
 
@@ -84,7 +85,14 @@ export function Dashboard({ caderneta, onSearch, onSelectStudent, onNewStudent }
       ) : (
         <div className="dashboard-grid">
           <div className="panel">
-            <h2 className="panel-title">Últimas ocorrências</h2>
+            <div className="panel-title panel-title-row">
+              <h2>Últimas ocorrências</h2>
+              {occurrences.length > 0 && (
+                <button type="button" className="text-btn" onClick={onShowAllOccurrences}>
+                  Ver todas →
+                </button>
+              )}
+            </div>
             {recent.length === 0 ? (
               <p className="muted">Ainda não foram registadas ocorrências.</p>
             ) : (
@@ -93,7 +101,7 @@ export function Dashboard({ caderneta, onSearch, onSelectStudent, onNewStudent }
                   const student = studentById.get(o.studentId);
                   return (
                     <li key={o.id}>
-                      <button type="button" className="recent-item" onClick={() => onSelectStudent(o.studentId)}>
+                      <button type="button" className="recent-item" onClick={() => onViewOccurrence(o.id)}>
                         <time className="recent-date mono" dateTime={o.date}>
                           {formatDate(o.date)}
                         </time>

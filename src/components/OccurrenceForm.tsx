@@ -1,24 +1,48 @@
 import { useState, type FormEvent } from 'react';
 import type { Result } from '../logic/useCaderneta';
-import { hasErrors, validateOccurrence, type Draft, type FieldErrors } from '../logic/validation';
+import {
+  hasErrors,
+  OCCURRENCE_FIELD_LABELS,
+  validateOccurrence,
+  type Draft,
+  type FieldErrors,
+} from '../logic/validation';
 import { OCCURRENCE_TYPES, type Occurrence, type OccurrenceInput, type Student } from '../types';
-import { todayISO } from '../utils/format';
+import { compareGrades, todayISO } from '../utils/format';
 import { FormField, fieldProps } from './FormField';
 import { Modal } from './Modal';
 
 interface OccurrenceFormProps {
-  student: Student;
+  students: Student[];
   /** Ocorrência a editar; se omitida, regista uma nova. */
   occurrence?: Occurrence;
+  /** Aluno pré-seleccionado (quando o formulário é aberto a partir do perfil). */
+  defaultStudentId?: string;
   onSubmit: (input: OccurrenceInput) => Result;
   onClose: () => void;
 }
 
 const FORM_ID = 'occurrence-form';
 
-export function OccurrenceForm({ student, occurrence, onSubmit, onClose }: OccurrenceFormProps) {
+/** Agrupa os alunos por classe e turma para o campo de selecção. */
+function groupStudents(students: Student[]) {
+  const groups = new Map<string, Student[]>();
+  const sorted = [...students].sort(
+    (a, b) =>
+      compareGrades(a.grade, b.grade) ||
+      a.className.localeCompare(b.className, 'pt') ||
+      a.fullName.localeCompare(b.fullName, 'pt'),
+  );
+  for (const s of sorted) {
+    const label = `${s.grade} · Turma ${s.className}`;
+    groups.set(label, [...(groups.get(label) ?? []), s]);
+  }
+  return [...groups.entries()];
+}
+
+export function OccurrenceForm({ students, occurrence, defaultStudentId, onSubmit, onClose }: OccurrenceFormProps) {
   const [values, setValues] = useState<Draft<OccurrenceInput>>(() => ({
-    studentId: student.id,
+    studentId: occurrence?.studentId ?? defaultStudentId ?? '',
     date: occurrence?.date ?? todayISO(),
     type: occurrence?.type ?? '',
     description: occurrence?.description ?? '',
@@ -27,27 +51,31 @@ export function OccurrenceForm({ student, occurrence, onSubmit, onClose }: Occur
   }));
   const [errors, setErrors] = useState<FieldErrors<OccurrenceInput>>({});
   const [submitted, setSubmitted] = useState(false);
-  const [formError, setFormError] = useState('');
+  const [saveError, setSaveError] = useState('');
 
   const set = (field: keyof OccurrenceInput, value: string) => {
     const next = { ...values, [field]: value };
     setValues(next);
-    if (submitted) setErrors(validateOccurrence(next));
+    // Depois da primeira tentativa, as mensagens desaparecem à medida que os campos são corrigidos.
+    if (submitted) setErrors(validateOccurrence(next, students));
   };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     setSubmitted(true);
-    const found = validateOccurrence(values);
+    setSaveError('');
+    const found = validateOccurrence(values, students);
     setErrors(found);
     if (hasErrors(found)) {
-      setFormError('Verifique os campos assinalados.');
+      // Os dados preenchidos mantêm-se; apenas se assinala o que falta corrigir.
       document.getElementById(`occ-${Object.keys(found)[0]}`)?.focus();
       return;
     }
     const result = onSubmit(values as OccurrenceInput);
-    if (!result.ok) setFormError(result.error);
+    if (!result.ok) setSaveError(result.error);
   };
+
+  const invalidFields = (Object.keys(errors) as (keyof OccurrenceInput)[]).map((f) => OCCURRENCE_FIELD_LABELS[f]);
 
   return (
     <Modal
@@ -68,19 +96,42 @@ export function OccurrenceForm({ student, occurrence, onSubmit, onClose }: Occur
         <p className="form-note">
           Os campos marcados com <span className="required">*</span> são obrigatórios.
         </p>
-        {formError && (
+
+        {invalidFields.length > 0 && (
           <div className="alert alert-error" role="alert">
-            {formError}
+            <strong>A ocorrência ainda não foi guardada.</strong>{' '}
+            {invalidFields.length === 1
+              ? `Corrija o campo ${invalidFields[0]}.`
+              : `Corrija os campos: ${invalidFields.join(', ')}.`}{' '}
+            Os dados que já preencheu foram mantidos.
+          </div>
+        )}
+        {saveError && (
+          <div className="alert alert-error" role="alert">
+            {saveError}
           </div>
         )}
 
         <div className="form-grid">
-          <div className="field span-2">
-            <span className="field-label">Aluno</span>
-            <p className="readonly-value">
-              {student.fullName} <span className="muted">· Nº {student.processNumber}</span>
-            </p>
-          </div>
+          <FormField id="occ-studentId" label="Aluno" required error={errors.studentId} className="span-2">
+            <select
+              {...fieldProps('occ-studentId', errors.studentId, true)}
+              value={values.studentId}
+              onChange={(e) => set('studentId', e.target.value)}
+              autoFocus={!values.studentId}
+            >
+              <option value="">Seleccione o aluno…</option>
+              {groupStudents(students).map(([label, group]) => (
+                <optgroup key={label} label={label}>
+                  {group.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.fullName} — Nº {s.processNumber}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </FormField>
           <FormField id="occ-date" label="Data da ocorrência" required error={errors.date}>
             <input
               {...fieldProps('occ-date', errors.date, true)}
@@ -95,9 +146,9 @@ export function OccurrenceForm({ student, occurrence, onSubmit, onClose }: Occur
               {...fieldProps('occ-type', errors.type, true)}
               value={values.type}
               onChange={(e) => set('type', e.target.value)}
-              autoFocus
+              autoFocus={!!values.studentId && !occurrence}
             >
-              <option value="">Seleccione…</option>
+              <option value="">Seleccione o tipo…</option>
               {OCCURRENCE_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
                   {t.label}
@@ -111,12 +162,12 @@ export function OccurrenceForm({ student, occurrence, onSubmit, onClose }: Occur
               rows={4}
               value={values.description}
               onChange={(e) => set('description', e.target.value)}
-              placeholder="Descreva o que aconteceu, onde e em que contexto."
+              placeholder="O que aconteceu, onde e em que contexto."
             />
           </FormField>
           <FormField
             id="occ-measure"
-            label="Medida disciplinar / providência tomada"
+            label="Medida disciplinar ou providência tomada"
             hint="Opcional — preencha quando aplicável."
             className="span-2"
           >

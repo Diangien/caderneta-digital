@@ -200,6 +200,7 @@ export function StudentList({
                 page={currentPage}
                 pageSize={PAGE_SIZE}
                 total={results.length}
+                label="Paginação da lista de alunos"
                 onPageChange={(p) => {
                   onPageChange(p);
                   window.scrollTo({ top: 0 });

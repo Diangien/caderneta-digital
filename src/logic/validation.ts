@@ -64,19 +64,32 @@ export function validateStudent(
   return errors;
 }
 
-export function validateOccurrence(input: Draft<OccurrenceInput>): FieldErrors<OccurrenceInput> {
+/** Nomes dos campos da ocorrência, usados no resumo de erros do formulário. */
+export const OCCURRENCE_FIELD_LABELS: Record<keyof OccurrenceInput, string> = {
+  studentId: 'Aluno',
+  date: 'Data',
+  type: 'Tipo',
+  description: 'Descrição',
+  measure: 'Medida',
+  recordedBy: 'Responsável',
+};
+
+export function validateOccurrence(input: Draft<OccurrenceInput>, students: Student[]): FieldErrors<OccurrenceInput> {
   const errors: FieldErrors<OccurrenceInput> = {};
 
-  if (!input.date) errors.date = REQUIRED;
-  else if (input.date > todayISO()) errors.date = 'A data da ocorrência não pode ser futura.';
+  if (!input.studentId) errors.studentId = 'Seleccione o aluno a quem a ocorrência diz respeito.';
+  else if (!students.some((s) => s.id === input.studentId)) errors.studentId = 'O aluno seleccionado já não existe.';
+
+  if (!input.date) errors.date = 'Indique a data da ocorrência.';
+  else if (input.date > todayISO()) errors.date = 'A data não pode ser posterior a hoje.';
 
   if (!OCCURRENCE_TYPES.some((t) => t.value === input.type)) errors.type = 'Seleccione o tipo de ocorrência.';
 
-  const description = input.description.trim();
-  if (!description) errors.description = REQUIRED;
-  else if (description.length < 10) errors.description = 'Descreva a ocorrência com pelo menos 10 caracteres.';
+  if (!input.description) errors.description = 'Descreva o que aconteceu.';
+  else if (!input.description.trim()) errors.description = 'A descrição não pode conter apenas espaços.';
 
-  if (!input.recordedBy.trim()) errors.recordedBy = REQUIRED;
+  if (!input.recordedBy) errors.recordedBy = 'Indique quem está a fazer o registo.';
+  else if (!input.recordedBy.trim()) errors.recordedBy = 'O nome do responsável não pode conter apenas espaços.';
 
   return errors;
 }
